@@ -13,6 +13,7 @@ import type {
   SessionAnswerRow,
   SessionPlan,
   SessionReport,
+  ResumeRow,
 } from '../lib/types';
 
 interface LoadedSession {
@@ -65,21 +66,25 @@ export default function Interview() {
           throw sessionError;
         }
 
-        if (!session.resume_id || !session.session_plan) {
+        const typedSession = session as InterviewSessionRow;
+
+        if (!typedSession.resume_id || !typedSession.session_plan) {
           throw new Error('This interview session is missing its resume or session plan.');
         }
 
         const { data: resume, error: resumeError } = await supabase
           .from('resumes')
           .select('*')
-          .eq('id', session.resume_id)
+          .eq('id', typedSession.resume_id)
           .single();
 
         if (resumeError) {
           throw resumeError;
         }
 
-        if (!resume.parsed_json) {
+        const typedResume = resume as ResumeRow;
+
+        if (!typedResume.parsed_json) {
           throw new Error('The selected resume has no parsed data.');
         }
 
@@ -93,19 +98,19 @@ export default function Interview() {
           throw answersError;
         }
 
-        if (session.session_plan.session_plan.length === 0) {
+        if (typedSession.session_plan && typedSession.session_plan.session_plan.length === 0) {
           throw new Error('This interview session has no questions.');
         }
 
-        setSavedAnswers(answers ?? []);
+        setSavedAnswers((answers ?? []) as SessionAnswerRow[]);
         setLoadedSession({
-          session,
-          resume: resume.parsed_json,
-          plan: session.session_plan,
+          session: typedSession,
+          resume: typedResume.parsed_json as ParsedResume,
+          plan: typedSession.session_plan as SessionPlan,
         });
         setCurrentIndex(0);
         setActivePrompt({
-          question: session.session_plan.session_plan[0],
+          question: typedSession.session_plan!.session_plan[0],
           isFollowup: false,
           followupText: null,
           parentAnswerId: null,
@@ -143,7 +148,7 @@ export default function Interview() {
       resume_json: loadedSession.resume,
     });
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await (supabase as any)
       .from('interview_sessions')
       .update({
         overall_score: report.overall_score,
@@ -180,7 +185,7 @@ export default function Interview() {
       },
     ];
 
-    await supabase.from('progress_metrics').insert(metricRows);
+    await supabase.from('progress_metrics').insert(metricRows as any);
     navigate(`/results/${sessionId}`, { replace: true });
   };
 
@@ -249,7 +254,7 @@ export default function Interview() {
 
       const { data: savedAnswer, error: insertError } = await supabase
         .from('session_answers')
-        .insert(insertPayload)
+        .insert(insertPayload as any)
         .select('*')
         .single();
 
@@ -257,7 +262,8 @@ export default function Interview() {
         throw insertError;
       }
 
-      const updatedAnswers = [...savedAnswers, savedAnswer];
+      const typedSavedAnswer = savedAnswer as SessionAnswerRow;
+      const updatedAnswers = [...savedAnswers, typedSavedAnswer];
       setSavedAnswers(updatedAnswers);
 
       if (!activePrompt.isFollowup && evaluation.followup_needed && evaluation.followup_question) {
@@ -265,7 +271,7 @@ export default function Interview() {
           question: activePrompt.question,
           isFollowup: true,
           followupText: evaluation.followup_question,
-          parentAnswerId: savedAnswer.id,
+          parentAnswerId: typedSavedAnswer.id,
         });
         setAnswerText('');
       } else {

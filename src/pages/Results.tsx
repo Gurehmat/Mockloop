@@ -152,7 +152,7 @@ export default function Results() {
           difficulty: state.session.difficulty,
           status: 'in_progress',
           session_plan: retryPlan,
-        })
+        } as any)
         .select('*')
         .single();
 
@@ -160,7 +160,7 @@ export default function Results() {
         throw newSessionError;
       }
 
-      navigate(`/interview/${newSession.id}`);
+      navigate(`/interview/${(newSession as InterviewSessionRow).id}`);
     } catch (retryError) {
       setError(retryError instanceof Error ? retryError.message : 'Unable to create retry session.');
     } finally {

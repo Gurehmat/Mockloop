@@ -27,13 +27,15 @@ export default function Onboarding() {
     setLoading(true);
     setError(null);
 
-    try {
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        user_id: userId,
-        name: candidateName,
-        target_role: targetRole,
-        experience_level: experienceLevel,
-      });
+      try {
+        const { error: profileError } = await supabase.from('profiles').upsert(
+          {
+            user_id: userId,
+            name: candidateName,
+            target_role: targetRole,
+            experience_level: experienceLevel,
+          } as any,
+        );
 
       if (profileError) {
         throw profileError;
@@ -56,16 +58,18 @@ export default function Onboarding() {
     setLoading(true);
     setError(null);
 
-    try {
-      const parsedResume = await invokeEdgeFunction<{ resume_text: string }, ParsedResume>('extract-resume', {
-        resume_text: resumeText,
-      });
+      try {
+        const parsedResume = await invokeEdgeFunction<{ resume_text: string }, ParsedResume>('extract-resume', {
+          resume_text: resumeText,
+        });
 
-      const { error: resumeError } = await supabase.from('resumes').insert({
-        user_id: userId,
-        raw_text: resumeText,
-        parsed_json: parsedResume,
-      });
+        const { error: resumeError } = await supabase.from('resumes').insert(
+          {
+            user_id: userId,
+            raw_text: resumeText,
+            parsed_json: parsedResume,
+          } as any,
+        );
 
       if (resumeError) {
         throw resumeError;

@@ -13,6 +13,8 @@ import type {
   ResumeInsert,
   ResumeRow,
   SessionPlan,
+  InterviewSessionRow,
+  JobTargetRow,
 } from '../lib/types';
 
 function inferCompanyName(text: string): string | null {
@@ -57,7 +59,7 @@ export default function Setup() {
           throw resumeError;
         }
 
-        const nextResumes = resumeData ?? [];
+        const nextResumes = (resumeData ?? []) as ResumeRow[];
         setResumes(nextResumes);
 
         if (nextResumes[0]) {
@@ -78,8 +80,9 @@ export default function Setup() {
           }
 
           if (target) {
-            setJobPosting(target.raw_text);
-            setParsedJD(target.parsed_json);
+            const typedTarget = target as JobTargetRow;
+            setJobPosting(typedTarget.raw_text);
+            setParsedJD(typedTarget.parsed_json);
           }
         }
       } catch (loadError) {
@@ -153,7 +156,7 @@ export default function Setup() {
 
         const { data: createdResume, error: resumeError } = await supabase
           .from('resumes')
-          .insert(resumeInsert)
+          .insert(resumeInsert as any)
           .select('*')
           .single();
 
@@ -161,7 +164,7 @@ export default function Setup() {
           throw resumeError;
         }
 
-        resumeId = createdResume.id;
+        resumeId = (createdResume as ResumeRow).id;
       }
 
       if (!resumeJson) {
@@ -196,7 +199,7 @@ export default function Setup() {
 
       const { data: jobTarget, error: jobTargetError } = await supabase
         .from('job_targets')
-        .insert(jobTargetInsert)
+        .insert(jobTargetInsert as any)
         .select('*')
         .single();
 
@@ -206,15 +209,17 @@ export default function Setup() {
 
       const { data: session, error: sessionError } = await supabase
         .from('interview_sessions')
-        .insert({
-          user_id: userId,
-          resume_id: resumeId,
-          job_target_id: jobTarget.id,
-          mode,
-          difficulty,
-          session_plan: plan,
-          status: 'in_progress',
-        })
+        .insert(
+          {
+            user_id: userId,
+            resume_id: resumeId,
+            job_target_id: (jobTarget as JobTargetRow).id,
+            mode,
+            difficulty,
+            session_plan: plan,
+            status: 'in_progress',
+          } as any,
+        )
         .select('*')
         .single();
 
@@ -222,7 +227,7 @@ export default function Setup() {
         throw sessionError;
       }
 
-      navigate(`/interview/${session.id}`);
+      navigate(`/interview/${(session as InterviewSessionRow).id}`);
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : 'Unable to start the interview.');
     } finally {

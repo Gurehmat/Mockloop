@@ -4,7 +4,7 @@ type EdgeError = {
   error: string;
 };
 
-export async function invokeEdgeFunction<TRequest, TResponse>(
+export async function invokeEdgeFunction<TRequest extends Record<string, unknown>, TResponse>(
   name: string,
   payload: TRequest,
 ): Promise<TResponse> {

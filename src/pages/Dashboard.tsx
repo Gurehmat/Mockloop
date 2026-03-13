@@ -52,7 +52,7 @@ export default function Dashboard() {
           throw sessionError;
         }
 
-        const lastTwoSessionIds = (sessions ?? []).slice(0, 2).map((session) => session.id);
+        const lastTwoSessionIds = ((sessions ?? []) as InterviewSessionRow[]).slice(0, 2).map((session) => session.id);
         let weakAreas: { tag: string; misses: number }[] = [];
 
         if (lastTwoSessionIds.length > 0) {
@@ -67,7 +67,7 @@ export default function Dashboard() {
 
           const counts = new Map<string, number>();
 
-          (answers ?? []).forEach((answer) => {
+          ((answers ?? []) as SessionAnswerRow[]).forEach((answer) => {
             if (!answer.competency_tag) {
               return;
             }
