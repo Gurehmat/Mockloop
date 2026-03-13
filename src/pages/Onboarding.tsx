@@ -27,14 +27,19 @@ export default function Onboarding() {
     setLoading(true);
     setError(null);
 
-      try {
-        const { error: profileError } = await supabase.from('profiles').upsert(
+    try {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert(
           {
             user_id: userId,
             name: candidateName,
             target_role: targetRole,
             experience_level: experienceLevel,
           } as any,
+          {
+            onConflict: 'user_id',
+          },
         );
 
       if (profileError) {
