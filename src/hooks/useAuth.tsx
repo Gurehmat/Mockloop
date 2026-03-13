@@ -6,6 +6,7 @@ import type { AuthBootstrapState, ProfileRow, ResumeRow } from '../lib/types';
 
 interface AuthContextValue extends AuthBootstrapState {
   loading: boolean;
+  error: string | null;
   refreshBootstrap: () => Promise<void>;
   session: Session | null;
 }
@@ -27,7 +28,10 @@ async function loadBootstrap(session: Session | null): Promise<AuthBootstrapStat
 
   const userId = session.user.id;
 
-  const [{ data: profile }, { data: resume }] = await Promise.all([
+  const [
+    { data: profile, error: profileError },
+    { data: resume, error: resumeError },
+  ] = await Promise.all([
     supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle(),
     supabase
       .from('resumes')
@@ -37,6 +41,14 @@ async function loadBootstrap(session: Session | null): Promise<AuthBootstrapStat
       .limit(1)
       .maybeSingle(),
   ]);
+
+  if (profileError && profileError.code !== 'PGRST116') {
+    throw profileError;
+  }
+
+  if (resumeError && resumeError.code !== 'PGRST116') {
+    throw resumeError;
+  }
 
   return {
     userId,
@@ -51,47 +63,97 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [state, setState] = useState<AuthBootstrapState>(initialState);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refreshBootstrap = async () => {
     setLoading(true);
-    const { data } = await supabase.auth.getSession();
-    const nextSession = data.session;
-    setSession(nextSession);
-    const nextState = await loadBootstrap(nextSession);
-    setState(nextState);
-    setLoading(false);
+    setError(null);
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      const nextSession = data.session;
+      setSession(nextSession);
+      const nextState = await loadBootstrap(nextSession);
+      setState(nextState);
+    } catch (refreshError) {
+      setSession(null);
+      setState(initialState);
+      setError(refreshError instanceof Error ? refreshError.message : 'Unable to initialize authentication.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!mounted) {
-        return;
-      }
+    const bootstrap = async () => {
+      setLoading(true);
+      setError(null);
 
-      setSession(data.session);
-      const nextState = await loadBootstrap(data.session);
-      if (!mounted) {
-        return;
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!mounted) {
+          return;
+        }
+
+        setSession(data.session);
+        const nextState = await loadBootstrap(data.session);
+        if (!mounted) {
+          return;
+        }
+
+        setState(nextState);
+      } catch (bootstrapError) {
+        if (!mounted) {
+          return;
+        }
+
+        setSession(null);
+        setState(initialState);
+        setError(bootstrapError instanceof Error ? bootstrapError.message : 'Unable to initialize authentication.');
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      setState(nextState);
-      setLoading(false);
-    });
+    };
+
+    void bootstrap();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, nextSession) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, nextSession) => {
       if (!mounted) {
         return;
       }
-      setSession(nextSession);
-      const nextState = await loadBootstrap(nextSession);
-      if (!mounted) {
-        return;
-      }
-      setState(nextState);
-      setLoading(false);
+
+      setLoading(true);
+      setError(null);
+
+      queueMicrotask(async () => {
+        try {
+          setSession(nextSession);
+          const nextState = await loadBootstrap(nextSession);
+          if (!mounted) {
+            return;
+          }
+
+          setState(nextState);
+        } catch (authError) {
+          if (!mounted) {
+            return;
+          }
+
+          setSession(null);
+          setState(initialState);
+          setError(authError instanceof Error ? authError.message : 'Unable to refresh authentication.');
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
+        }
+      });
     });
 
     return () => {
@@ -104,10 +166,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       loading,
+      error,
       refreshBootstrap,
       session,
     }),
-    [loading, session, state],
+    [error, loading, session, state],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

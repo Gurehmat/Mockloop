@@ -1,6 +1,6 @@
 import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import { LoadingScreen } from './components/ui';
+import { AppShell, Button, ErrorPanel, LoadingScreen } from './components/ui';
 import Landing from './pages/Landing';
 import Auth from './pages/Auth';
 import Onboarding from './pages/Onboarding';
@@ -10,10 +10,26 @@ import Interview from './pages/Interview';
 import Results from './pages/Results';
 
 function PublicRoute() {
-  const { userId, onboardingComplete, loading } = useAuth();
+  const { userId, onboardingComplete, loading, error } = useAuth();
 
   if (loading) {
     return <LoadingScreen title="Loading MockLoop" description="Checking your session and interview data." />;
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <ErrorPanel
+          action={
+            <Button onClick={() => window.location.reload()} type="button">
+              Retry
+            </Button>
+          }
+          message={error}
+          title="Authentication bootstrap failed"
+        />
+      </AppShell>
+    );
   }
 
   if (userId) {
@@ -24,11 +40,27 @@ function PublicRoute() {
 }
 
 function ProtectedRoute() {
-  const { userId, onboardingComplete, loading } = useAuth();
+  const { userId, onboardingComplete, loading, error } = useAuth();
   const location = useLocation();
 
   if (loading) {
     return <LoadingScreen title="Loading MockLoop" description="Checking your session and interview data." />;
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <ErrorPanel
+          action={
+            <Button onClick={() => window.location.reload()} type="button">
+              Retry
+            </Button>
+          }
+          message={error}
+          title="Authentication bootstrap failed"
+        />
+      </AppShell>
+    );
   }
 
   if (!userId) {
@@ -43,10 +75,26 @@ function ProtectedRoute() {
 }
 
 function OnboardingRoute() {
-  const { userId, onboardingComplete, loading } = useAuth();
+  const { userId, onboardingComplete, loading, error } = useAuth();
 
   if (loading) {
     return <LoadingScreen title="Loading your profile" description="Preparing your onboarding steps." />;
+  }
+
+  if (error) {
+    return (
+      <AppShell>
+        <ErrorPanel
+          action={
+            <Button onClick={() => window.location.reload()} type="button">
+              Retry
+            </Button>
+          }
+          message={error}
+          title="Authentication bootstrap failed"
+        />
+      </AppShell>
+    );
   }
 
   if (!userId) {

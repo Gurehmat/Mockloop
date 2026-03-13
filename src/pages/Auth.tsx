@@ -9,16 +9,18 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setInfo(null);
     setLoading(true);
 
     try {
       if (mode === 'signup') {
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
         });
@@ -27,7 +29,13 @@ export default function Auth() {
           throw signUpError;
         }
 
-        navigate('/onboarding', { replace: true });
+        if (data.session) {
+          navigate('/onboarding', { replace: true });
+          return;
+        }
+
+        setMode('login');
+        setInfo('Account created. Confirm your email if required by Supabase, then log in.');
         return;
       }
 
@@ -107,6 +115,12 @@ export default function Auth() {
                 message={error}
                 title={mode === 'signup' ? 'Sign up failed' : 'Log in failed'}
               />
+            ) : null}
+
+            {info ? (
+              <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                {info}
+              </div>
             ) : null}
 
             <Button className="w-full" disabled={loading} type="submit">
