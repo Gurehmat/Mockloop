@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at top left, rgba(255, 122, 89, 0.22), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(94, 234, 212, 0.16), transparent 24%),
+    #070b14;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(255, 122, 89, 0.22), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(94, 234, 212, 0.16), transparent 24%),
+    #070b14;
+  color: #f8fafc;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.progress-bar {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.progress-bar::-webkit-progress-bar {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+
+.progress-bar::-webkit-progress-value {
+  background: linear-gradient(90deg, #ff7a59, #5eead4);
+  border-radius: 9999px;
+}
+
+.progress-bar::-moz-progress-bar {
+  background: linear-gradient(90deg, #ff7a59, #5eead4);
+  border-radius: 9999px;
+}
+
+textarea,
+input,
+select {
+  outline: none;
+}
